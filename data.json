@@ -10,7 +10,7 @@
         "21:30"
       ],
       "alarm_time": 15,
-      "alarm_on": false
+      "alarm_on": true
     },
     {
       "name": "에라스모",

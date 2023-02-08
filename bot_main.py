@@ -55,7 +55,7 @@ async def before_my_task():
 
 # ----------------- 봇 명령어 ------------------------
 async def wait_for_user_content(ctx):
-    timeout = 15
+    timeout = 20
 
     def check(m):
         return m.author == ctx.message.author and m.channel == ctx.message.channel
@@ -191,8 +191,43 @@ async def 섬(ctx, *param):
                         time_left = int(min_time.total_seconds() // 60)
                         await ctx.send(name_input + " 섬의 다음 등장 시간 - " + min_time_island + " (" + str(time_left) + "분 뒤 출현)")
                         return
+            elif detail == "알람확인":
+                for island in data['islands']:
+                    if island['name'] == name_input:
+                        on_off_status = "ON" if island['alarm_on'] is True else "OFF"
+                        await ctx.send(f"{name_input} 섬의 알람 설정은 {island['alarm_time']}분 전 알람입니다.\n{name_input} 섬의 알람은 현재 {on_off_status} 상태입니다.")
+
+            elif detail == "알람변경":
+                for island in data['islands']:
+                    if island['name'] == name_input:
+                        on_off_status = "ON" if island['alarm_on'] is True else "OFF"
+                        await ctx.send(f"{name_input} 섬의 알람 설정은 {island['alarm_time']}분 전 알람입니다.\n{name_input} 섬의 알람은 현재 {on_off_status} 상태입니다.")
+                        await ctx.send(f"{name_input} 섬의 알람 시간을 변경하시겠습니까? (ㅇㅇ, ㄴㄴ)")
+                        yes_no_input = await wait_for_user_content(ctx)
+                        if yes_no_input == "ㅇㅇ":
+                            await ctx.send("변경할 알람 시간을 입력해주세요. (ex. 10 => 10분전 알람)")
+                            alarm_time_input = await wait_for_user_content(ctx)
+
+                            island['alarm_time'] = int(alarm_time_input)
+                            await update_json(ctx, data, f"{name_input} 섬의 알람이 {alarm_time_input} 분 전으로 변경되었습니다")
+                            return
+
+            elif detail == "알람켜":
+                for island in data['islands']:
+                    if island['name'] == name_input:
+                        island['alarm_on'] = True
+                        await update_json(ctx, data, f"{name_input} 섬의 알람이 {island['alarm_time']} 분 전에 설정되었습니다")
+
+            elif detail == "알람꺼":
+                for island in data['islands']:
+                    if island['name'] == name_input:
+                        island['alarm_on'] = False
+                        await update_json(ctx, data, f"{name_input} 섬의 알람이 종료되었습니다")
+
             else:
-                await ctx.send("명령어 확인 불가\n명령어: 전체시간, 다음시간, 알람설정")
+                await ctx.send("명령어 확인 불가\n명령어: 전체시간, 다음시간, 알람확인, 알람변경, 알람켜, 알람꺼")
+        else:
+            await ctx.send("명령어 확인 불가\n명령어: 전체시간, 다음시간, 알람확인, 알람변경, 알람켜, 알람꺼")
 
 
 
