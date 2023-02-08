@@ -8,7 +8,8 @@ import asyncio
 import json
 from datetime import datetime
 from datetime import timedelta
-import unicodedata
+from dotenv import load_dotenv
+import os
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -160,7 +161,7 @@ async def 섬(ctx, *param):
         await ctx.send(f"입력하신 {delete_name_input} 섬은 존재하지 않습니다. 확인 후 다시 시도해주세요")
 
     else:
-        try:
+        if len(param) > 1:
             detail = param[1]
             if detail == "전체시간":
                 time_string = ""
@@ -192,10 +193,9 @@ async def 섬(ctx, *param):
                         return
             else:
                 await ctx.send("명령어 확인 불가\n명령어: 전체시간, 다음시간, 알람설정")
-        except:
-            await ctx.send("명령어 오류\n명령어: 전체시간, 다음시간, 알람설정")
 
 
 
 ### ------------ Main ------------ ###
-bot.run('MTA3MjM4OTQ1NTg0OTIwNTgxMQ.GtjPAb.pQygsa9JHcV15tjZej9Hm-2mYhiM0VRBLlpM9s')
+load_dotenv('config.env')
+bot.run(os.getenv("BOT_TOKEN"))
