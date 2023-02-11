@@ -138,7 +138,7 @@ async def 섬(ctx, *param):
             alarm_time_input = await wait_for_user_content(ctx)
             await ctx.send(f"{alarm_time_input}분 전에 알람을 전송합니다")
 
-        new_island_data = {'name': island_name_input, 'time': time_input_list, 'alarm_time': int(alarm_time_input), 'alarm_on': alarm_on}
+        new_island_data = {'name': island_name_input, 'times': time_input_list, 'alarm_time': int(alarm_time_input), 'alarm_on': alarm_on}
         data[island_name_input] = new_island_data
         await update_json(ctx, data, f"새로운 {island_name_input} 섬을 성공적으로 추가했습니다")
 
@@ -191,7 +191,10 @@ async def 섬(ctx, *param):
                             min_time_island = island_time.strftime("%H:%M")
 
                 time_left = int(min_time.total_seconds() // 60)
-                await ctx.send(name_input + " 섬의 다음 등장 시간 - " + min_time_island + " (" + str(time_left) + "분 뒤 출현)")
+                if time_left >= 60:
+                    await ctx.send(f"{name_input} 섬의 다음 등장 시간 - {min_time_island} ({time_left // 60}시간 {time_left % 60}분 뒤 출현)")
+                else:
+                    await ctx.send(name_input + " 섬의 다음 등장 시간 - " + min_time_island + " (" + str(time_left) + "분 뒤 출현)")
                 return
 
             elif detail == "알람확인":
