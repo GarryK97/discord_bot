@@ -1,34 +1,33 @@
 {
-  "islands": [
-    {
-      "name": "모코콩",
-      "time": [
-        "0:30",
-        "9:30",
-        "12:30",
-        "19:30",
-        "21:30"
-      ],
-      "alarm_time": 15,
-      "alarm_on": true
-    },
-    {
-      "name": "에라스모",
-      "time": [
-        "6:00",
-        "14:00",
-        "20:00"
-      ],
-      "alarm_time": 15,
-      "alarm_on": false
-    },
-    {
-      "name": "테스트",
-      "time": [
-        "12:30"
-      ],
-      "alarm_time": 15,
-      "alarm_on": false
-    }
-  ]
+  "모코콩": {
+    "name": "모코콩",
+    "times": [
+      "0:30",
+      "9:30",
+      "12:30",
+      "19:30",
+      "21:30"
+    ],
+    "alarm_time": 15,
+    "alarm_on": false
+  },
+  "에라스모": {
+    "name": "에라스모",
+    "times": [
+      "6:00",
+      "14:00",
+      "20:00"
+    ],
+    "alarm_time": 15,
+    "alarm_on": false
+  },
+  "테스트": {
+    "name": "테스트",
+    "time": [
+      "12:30",
+      "16:20"
+    ],
+    "alarm_time": 8,
+    "alarm_on": false
+  }
 }

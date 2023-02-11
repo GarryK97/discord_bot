@@ -19,41 +19,7 @@ with open('data.json', 'rt', encoding='utf-8') as f:
     data = json.load(f)
 
 
-@bot.event
-async def setup_hook() -> None:
-    # start the task to run in the background
-    alarm_task.start()
-
-
-@bot.event
-async def on_ready():
-    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
-    print('------')
-
-
-@tasks.loop(seconds=60)
-async def alarm_task():
-    for island in data['islands']:
-        current_time = datetime.strptime(datetime.now().strftime("%H:%M"), "%H:%M")
-        for a_time in island['time']:
-            island_time = datetime.strptime(a_time, "%H:%M")
-            if island_time.hour == 0:
-                island_time = island_time + timedelta(days=1)
-
-            time_left = island_time - current_time
-            if island['alarm_on'] is True and time_left > timedelta(seconds=1) and time_left.total_seconds() // 60 == island["alarm_time"]:
-                hour = datetime.strftime(island_time, "%H")
-                minute = datetime.strftime(island_time, "%M")
-                channel = bot.get_channel(1072387867600506990)
-                await channel.send(f'{hour}시 {minute}분 {island["name"]} {island["alarm_time"]}분전입니다', tts=True)
-
-
-@alarm_task.before_loop
-async def before_my_task():
-    await bot.wait_until_ready()  # wait until the bot logs in
-
-
-# ----------------- 봇 명령어 ------------------------
+# ----------------- 시간단축용 함수들 ----------------------
 async def wait_for_user_content(ctx):
     timeout = 20
 
@@ -77,6 +43,45 @@ async def update_json(ctx, dict_data, response):
         await ctx.send("!!섬 데이터 수정중 오류가 발생했습니다!!")
 
 
+async def print_no_data(ctx, island_name):
+    await ctx.send(f"입력하신 {island_name} 섬은 존재하지 않습니다. 확인 후 다시 시도해주세요")
+
+
+@bot.event
+async def setup_hook() -> None:
+    # start the task to run in the background
+    alarm_task.start()
+
+
+@bot.event
+async def on_ready():
+    print(f'Logged in as {bot.user} (ID: {bot.user.id})')
+    print('------')
+
+
+@tasks.loop(seconds=60)
+async def alarm_task():
+    for island in data.keys():
+        current_time = datetime.strptime(datetime.now().strftime("%H:%M"), "%H:%M")
+        for island_time_string in data[island]['times']:
+            island_time = datetime.strptime(island_time_string, "%H:%M")
+            if island_time.hour == 0:
+                island_time = island_time + timedelta(days=1)
+
+            time_left = island_time - current_time
+            if data[island]['alarm_on'] is True and time_left > timedelta(seconds=1) and time_left.total_seconds() // 60 == data[island]["alarm_time"]:
+                hour = datetime.strftime(island_time, "%H")
+                minute = datetime.strftime(island_time, "%M")
+                channel = bot.get_channel(1072387867600506990)
+                await channel.send(f'{hour}시 {minute}분 {island} {data[island]["alarm_time"]}분전입니다', tts=True)
+
+
+@alarm_task.before_loop
+async def before_my_task():
+    await bot.wait_until_ready()  # wait until the bot logs in
+
+
+# ----------------- 봇 명령어 ------------------------
 @bot.command()
 async def 섬(ctx, *param):
     name_input = param[0]
@@ -134,95 +139,85 @@ async def 섬(ctx, *param):
             await ctx.send(f"{alarm_time_input}분 전에 알람을 전송합니다")
 
         new_island_data = {'name': island_name_input, 'time': time_input_list, 'alarm_time': int(alarm_time_input), 'alarm_on': alarm_on}
-        data['islands'].append(new_island_data)
+        data[island_name_input] = new_island_data
         await update_json(ctx, data, f"새로운 {island_name_input} 섬을 성공적으로 추가했습니다")
 
     elif name_input == "전체":
-        output_list = []
-        for island in data['islands']:
-            output_list.append(island['name'])
-        await ctx.send(" | ".join(output_list))
+        await ctx.send(" | ".join(data.keys()))
 
     elif name_input == "삭제":
         await ctx.send("삭제할 섬의 이름을 입력해주세요 (저장 데이터와 동일해야함)")
         delete_name_input = await wait_for_user_content(ctx)
-        for i in range(len(data['islands'])):
-            if data['islands'][i]['name'] == delete_name_input:
-                await ctx.send(f"정말 {delete_name_input} 섬을 삭제하시겠습니까? (ㅇㅇ, ㄴㄴ)")
-                confirm_input = await wait_for_user_content(ctx)
-                if confirm_input == "ㅇㅇ":
-                    data['islands'].pop(i)
-                    await update_json(ctx, data, f"{delete_name_input} 섬을(를) 문제없이 삭제했습니다")
-                    return
-                else:
-                    await ctx.send("섬 삭제 명령이 취소되었습니다")
-                    return
-
-        await ctx.send(f"입력하신 {delete_name_input} 섬은 존재하지 않습니다. 확인 후 다시 시도해주세요")
+        if delete_name_input in data.keys():
+            await ctx.send(f"정말 {delete_name_input} 섬을 삭제하시겠습니까? (ㅇㅇ, ㄴㄴ)")
+            confirm_input = await wait_for_user_content(ctx)
+            if confirm_input == "ㅇㅇ":
+                data.pop(delete_name_input)
+                await update_json(ctx, data, f"{delete_name_input} 섬을(를) 문제없이 삭제했습니다")
+                return
+            else:
+                await ctx.send("섬 삭제 명령이 취소되었습니다")
+                return
+        else:
+            await print_no_data(ctx, delete_name_input)
 
     else:
+        try:
+            island_data = data[name_input]
+        except KeyError:
+            await print_no_data(ctx, name_input)
+            return
+
         if len(param) > 1:
             detail = param[1]
             if detail == "전체시간":
-                time_string = ""
-                for island in data['islands']:
-                    if island['name'] == name_input:
-                        for a_time in island['time']:
-                            time_string += a_time + " | "
-                        time_string = time_string[:-3]
-                        await ctx.send(name_input + "의 전체 시간은 " + time_string + " 입니다")
-                        return
-            elif detail == "다음시간":
-                min_time = timedelta(days=2)
-                min_time_island = ""
-                for island in data['islands']:
-                    if island['name'] == name_input:
-                        current_time = datetime.strptime(datetime.now().strftime("%H:%M"), "%H:%M")
-                        for a_time in island['time']:
-                            island_time = datetime.strptime(a_time, "%H:%M")
-                            if island_time.hour == 0:
-                                island_time = island_time + timedelta(days=1)
-                            time_diff = island_time - current_time
-                            if time_diff > timedelta(seconds=1):
-                                if time_diff < min_time:
-                                    min_time = time_diff
-                                    min_time_island = island_time.strftime("%H:%M")
+                island_times = island_data['times']
+                time_string = " | ".join(island_times)
+                await ctx.send(name_input + "의 전체 시간은 " + time_string + " 입니다")
+                return
 
-                        time_left = int(min_time.total_seconds() // 60)
-                        await ctx.send(name_input + " 섬의 다음 등장 시간 - " + min_time_island + " (" + str(time_left) + "분 뒤 출현)")
-                        return
+            elif detail == "다음시간":
+                min_time = timedelta(days=2)    # Min value 찾기위한 디폴트값
+                min_time_island = ""
+                current_time = datetime.strptime(datetime.now().strftime("%H:%M"), "%H:%M")
+                for a_time in island_data['times']:
+                    island_time = datetime.strptime(a_time, "%H:%M")
+                    if island_time.hour == 0:
+                        island_time = island_time + timedelta(days=1)
+                    time_diff = island_time - current_time
+                    if time_diff > timedelta(seconds=1):
+                        if time_diff < min_time:
+                            min_time = time_diff
+                            min_time_island = island_time.strftime("%H:%M")
+
+                time_left = int(min_time.total_seconds() // 60)
+                await ctx.send(name_input + " 섬의 다음 등장 시간 - " + min_time_island + " (" + str(time_left) + "분 뒤 출현)")
+                return
+
             elif detail == "알람확인":
-                for island in data['islands']:
-                    if island['name'] == name_input:
-                        on_off_status = "ON" if island['alarm_on'] is True else "OFF"
-                        await ctx.send(f"{name_input} 섬의 알람 설정은 {island['alarm_time']}분 전 알람입니다.\n{name_input} 섬의 알람은 현재 {on_off_status} 상태입니다.")
+                on_off_status = "ON" if island_data['alarm_on'] is True else "OFF"
+                await ctx.send(f"{name_input} 섬의 알람 설정은 {island_data['alarm_time']}분 전 알람입니다.\n{name_input} 섬의 알람은 현재 {on_off_status} 상태입니다.")
 
             elif detail == "알람변경":
-                for island in data['islands']:
-                    if island['name'] == name_input:
-                        on_off_status = "ON" if island['alarm_on'] is True else "OFF"
-                        await ctx.send(f"{name_input} 섬의 알람 설정은 {island['alarm_time']}분 전 알람입니다.\n{name_input} 섬의 알람은 현재 {on_off_status} 상태입니다.")
-                        await ctx.send(f"{name_input} 섬의 알람 시간을 변경하시겠습니까? (ㅇㅇ, ㄴㄴ)")
-                        yes_no_input = await wait_for_user_content(ctx)
-                        if yes_no_input == "ㅇㅇ":
-                            await ctx.send("변경할 알람 시간을 입력해주세요. (ex. 10 => 10분전 알람)")
-                            alarm_time_input = await wait_for_user_content(ctx)
+                on_off_status = "ON" if island_data['alarm_on'] is True else "OFF"
+                await ctx.send(f"{name_input} 섬의 알람 설정은 {island_data['alarm_time']}분 전 알람입니다.\n{name_input} 섬의 알람은 현재 {on_off_status} 상태입니다.")
+                await ctx.send(f"{name_input} 섬의 알람 시간을 변경하시겠습니까? (ㅇㅇ, ㄴㄴ)")
+                yes_no_input = await wait_for_user_content(ctx)
+                if yes_no_input == "ㅇㅇ":
+                    await ctx.send("변경할 알람 시간을 입력해주세요. (ex. 10 => 10분전 알람)")
+                    alarm_time_input = await wait_for_user_content(ctx)
 
-                            island['alarm_time'] = int(alarm_time_input)
-                            await update_json(ctx, data, f"{name_input} 섬의 알람이 {alarm_time_input} 분 전으로 변경되었습니다")
-                            return
+                    island_data['alarm_time'] = int(alarm_time_input)
+                    await update_json(ctx, data, f"{name_input} 섬의 알람이 {alarm_time_input} 분 전으로 변경되었습니다")
+                    return
 
             elif detail == "알람켜":
-                for island in data['islands']:
-                    if island['name'] == name_input:
-                        island['alarm_on'] = True
-                        await update_json(ctx, data, f"{name_input} 섬의 알람이 {island['alarm_time']} 분 전에 설정되었습니다")
+                island_data['alarm_on'] = True
+                await update_json(ctx, data, f"{name_input} 섬의 알람이 {island_data['alarm_time']} 분 전에 설정되었습니다")
 
             elif detail == "알람꺼":
-                for island in data['islands']:
-                    if island['name'] == name_input:
-                        island['alarm_on'] = False
-                        await update_json(ctx, data, f"{name_input} 섬의 알람이 종료되었습니다")
+                island_data['alarm_on'] = False
+                await update_json(ctx, data, f"{name_input} 섬의 알람이 종료되었습니다")
 
             else:
                 await ctx.send("명령어 확인 불가\n명령어: 전체시간, 다음시간, 알람확인, 알람변경, 알람켜, 알람꺼")
