@@ -11,6 +11,9 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import os
 
+from bs4 import BeautifulSoup
+from selenium import webdriver
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -51,6 +54,7 @@ async def print_no_data(ctx, island_name):
 async def setup_hook() -> None:
     # start the task to run in the background
     alarm_task.start()
+    special_card_alarm_task.start()
 
 
 @bot.event
@@ -76,7 +80,39 @@ async def alarm_task():
                 await channel.send(f'{hour}시 {minute}분 {island} {data[island]["alarm_time"]}분전입니다', tts=True)
 
 
+@tasks.loop(seconds=60)
+async def special_card_alarm_task():
+    options = webdriver.ChromeOptions()
+    options.add_argument("headless")
+    url = "https://kloa.gg/merchant?utm_source=discord&utm_medium=bot&utm_campaign=divider"
+    driver = webdriver.Chrome('C:\chromedriver_win32\chromedriver', options=options)
+    driver.get(url)
+
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'html.parser')
+
+    active_servers = ["실리안", "니나브", "루페온"]
+    active_items = ["웨이 카드", "에버그레이스 카드"]
+
+    random_merchant_data = soup.find_all("div", {"class": "flex space-x-[20px]"})
+    for each_table in random_merchant_data:
+        server_name = each_table.find("span", {"class": "self-center text-sm"}).text  # 서버이름
+        location_name = each_table.find("span", {
+            "class": "self-center group-hover:text-main2 text-lg text-head font-medium leading-[22px] transition-all duration-200 ease-in-out"}).text  # 떠상 지역
+        if server_name in active_servers:
+            all_items = each_table.find_all("span", {"class": "px-[4px] leading-[22px]"})  # 나온 템
+            for item in all_items:
+                if item.text in active_items:
+                    channel = bot.get_channel(409244295372079106)
+                    await channel.send(f"{server_name} 서버 | {location_name}에 {item.text}가 등장했습니다.", tts=True)
+                    channel = bot.get_channel(1072387867600506990)
+                    await channel.send(f"{server_name} 서버 | {location_name}에 {item.text}가 등장했습니다.", tts=True)
+
+    driver.quit()
+
+
 @alarm_task.before_loop
+@special_card_alarm_task.before_loop
 async def before_my_task():
     await bot.wait_until_ready()  # wait until the bot logs in
 
