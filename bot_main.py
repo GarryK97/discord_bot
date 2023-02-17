@@ -108,6 +108,7 @@ async def alarm_task():
                 await channel.send(f'{hour}시 {minute}분 {island} {data[island]["alarm_time"]}분전입니다', tts=True)
 
 
+msg_list = []
 @tasks.loop(seconds=90)
 async def special_card_alarm_task():
     options = webdriver.ChromeOptions()
@@ -130,13 +131,18 @@ async def special_card_alarm_task():
         if server_name in active_servers:
             all_items = each_table.find_all("span", {"class": "px-[4px] leading-[22px]"})  # 나온 템
             for item in all_items:
-                if item.text in active_items:
+                inform_string = f"{server_name} 서버 | {location_name}에 {item.text}가 등장했습니다."
+                if item.text in active_items and inform_string not in msg_list:
                     channel = bot.get_channel(409244295372079106)   # General 채널에 전송
-                    await channel.send(f"{server_name} 서버 | {location_name}에 {item.text}가 등장했습니다.", tts=True)
+                    await channel.send(inform_string, tts=True)
                     channel = bot.get_channel(1072387867600506990)  # 스카이넷일터 채널에 전송
-                    await channel.send(f"{server_name} 서버 | {location_name}에 {item.text}가 등장했습니다.", tts=True)
+                    await channel.send(inform_string, tts=True)
+                    msg_list.append(inform_string)  # 같은 알림이 여러번 전송되는것 방지
 
-    driver.quit()
+    driver.quit()   # 여러창 실행해서 메모리 누수 방지용
+    # 매 정각마다 보냈던 메세지 리스트 초기화
+    if 0 <= datetime.now().minute <= 3:
+        msg_list.clear()
 
 
 @alarm_task.before_loop
