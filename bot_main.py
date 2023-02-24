@@ -13,6 +13,7 @@ import os
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -117,18 +118,26 @@ async def special_card_alarm_task():
     driver = webdriver.Chrome('C:\chromedriver_win32\chromedriver', options=options)
     driver.get(url)
 
+    time.sleep(1)   # 페이지 로딩안되는것 방지
+    merchant_list = driver.find_element(By.CLASS_NAME, 'w-full.h-full.flex.justify-center.overflow-y-scroll.merchant_merchant_list__HaOZR')
+    for _ in range(3):  # 3번 반복
+        driver.execute_script("arguments[0].scrollBy(0,1080)", merchant_list)
+        time.sleep(0.5)
+
     html = driver.page_source
     soup = BeautifulSoup(html, 'html.parser')
 
     active_servers = ["실리안", "니나브", "루페온"]
-    active_items = ["웨이 카드", "에버그레이스 카드", "바르칸 카드"]
+    active_items = ["웨이 카드", "에버그레이스 카드", "바르칸 카드", "오징어"]
 
-    random_merchant_data = soup.find_all("div", {"class": "flex space-x-[20px]"})
+    random_merchant_data = soup.find_all("div", {"class": "first:rounded-t-[10px] last:rounded-b-[10px] flex items-center w-full h-[60px] justify-between relative px-[30px] border-t border-l-2 border-r-2 border-basicGrey first:border-t-2 last:border-b-2 bg-white"})
     for each_table in random_merchant_data:
         server_name = each_table.find("span", {"class": "self-center text-sm"}).text  # 서버이름
         location_name = each_table.find("span", {
             "class": "self-center group-hover:text-main2 text-lg text-head font-medium leading-[22px] transition-all duration-200 ease-in-out"}).text  # 떠상 지역
-        if server_name in active_servers:
+        merchant_hour = each_table.find("span", {"class": "self-center w-[48px]"}).text[:2]
+        # 설정한 서버일때만, 그리고 현재 등장한것만 체크 (과거에 등장한것까지 알림하는걸 예외처리하기위함)
+        if server_name in active_servers and int(merchant_hour) == datetime.now().hour:
             all_items = each_table.find_all("span", {"class": "px-[4px] leading-[22px]"})  # 나온 템
             for item in all_items:
                 inform_string = f"{server_name} 서버 | {location_name}에 {item.text}가 등장했습니다."
