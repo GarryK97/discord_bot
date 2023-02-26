@@ -115,14 +115,14 @@ async def special_card_alarm_task():
     options = webdriver.ChromeOptions()
     options.add_argument("headless")
     url = "https://kloa.gg/merchant?utm_source=discord&utm_medium=bot&utm_campaign=divider"
-    driver = webdriver.Chrome('C:\chromedriver_win32\chromedriver', options=options)
+    driver = webdriver.Chrome('C:\chromedriver_win32\chromedriver')
     driver.get(url)
 
-    time.sleep(1)   # 페이지 로딩안되는것 방지
+    await asyncio.sleep(1)   # 페이지 로딩안되는것 방지
     merchant_list = driver.find_element(By.CLASS_NAME, 'w-full.h-full.flex.justify-center.overflow-y-scroll.merchant_merchant_list__HaOZR')
     for _ in range(7):  # 7번 반복
         driver.execute_script("arguments[0].scrollBy(0,1080)", merchant_list)
-        time.sleep(0.5)
+        await asyncio.sleep(0.5)
 
     html = driver.page_source
     soup = BeautifulSoup(html, 'html.parser')
