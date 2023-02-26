@@ -115,7 +115,7 @@ async def special_card_alarm_task():
     options = webdriver.ChromeOptions()
     options.add_argument("headless")
     url = "https://kloa.gg/merchant?utm_source=discord&utm_medium=bot&utm_campaign=divider"
-    driver = webdriver.Chrome('C:\chromedriver_win32\chromedriver')
+    driver = webdriver.Chrome('C:\chromedriver_win32\chromedriver', options=options)
     driver.get(url)
 
     await asyncio.sleep(1)   # 페이지 로딩안되는것 방지
@@ -126,6 +126,7 @@ async def special_card_alarm_task():
 
     html = driver.page_source
     soup = BeautifulSoup(html, 'html.parser')
+    driver.quit()  # 크롬탭 여러개 실행하는 메모리 누수 방지
 
     active_servers = ["실리안", "니나브", "루페온"]
     active_items = ["웨이 카드", "에버그레이스 카드", "바르칸 카드", "오징어"]
@@ -148,7 +149,6 @@ async def special_card_alarm_task():
                     await channel.send(inform_string, tts=True)
                     msg_list.append(inform_string)  # 같은 알림이 여러번 전송되는것 방지
 
-    driver.quit()   # 여러창 실행해서 메모리 누수 방지용
     # 매 정각마다 보냈던 메세지 리스트 초기화
     if 0 <= datetime.now().minute <= 3:
         msg_list.clear()
