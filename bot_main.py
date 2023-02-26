@@ -120,7 +120,7 @@ async def special_card_alarm_task():
 
     time.sleep(1)   # 페이지 로딩안되는것 방지
     merchant_list = driver.find_element(By.CLASS_NAME, 'w-full.h-full.flex.justify-center.overflow-y-scroll.merchant_merchant_list__HaOZR')
-    for _ in range(3):  # 3번 반복
+    for _ in range(7):  # 7번 반복
         driver.execute_script("arguments[0].scrollBy(0,1080)", merchant_list)
         time.sleep(0.5)
 
@@ -138,7 +138,7 @@ async def special_card_alarm_task():
         merchant_hour = each_table.find("span", {"class": "self-center w-[48px]"}).text[:2]
         # 설정한 서버일때만, 그리고 현재 등장한것만 체크 (과거에 등장한것까지 알림하는걸 예외처리하기위함)
         if server_name in active_servers and int(merchant_hour) == datetime.now().hour:
-            all_items = each_table.find_all("span", {"class": "px-[4px] leading-[22px]"})  # 나온 템
+            all_items = each_table.select('[class^="px-[4px] leading-[22px]"]')  # 나온 템
             for item in all_items:
                 inform_string = f"{server_name} 서버 | {location_name}에 {item.text}가 등장했습니다."
                 if item.text in active_items and inform_string not in msg_list:
