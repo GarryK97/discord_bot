@@ -2,6 +2,7 @@
 
 import time
 import discord
+import selenium.common
 from discord.ext import commands
 from discord.ext import tasks
 import asyncio
@@ -124,10 +125,18 @@ async def special_card_alarm_task():
         print(f"클로아 홈페이지 접속 장애 발생중 ----- {datetime.now().strftime('%H:%M')}")
         return
 
-    merchant_list = driver.find_element(By.CLASS_NAME, 'w-full.h-full.flex.justify-center.overflow-y-scroll.merchant_merchant_list__HaOZR')
-    for _ in range(7):  # 7번 반복
-        driver.execute_script("arguments[0].scrollBy(0,1080)", merchant_list)
-        await asyncio.sleep(0.5)
+    try:
+        merchant_list = driver.find_element(By.CLASS_NAME, 'w-full.h-full.flex.justify-center.overflow-y-scroll.merchant_merchant_list__HaOZR')
+        for _ in range(7):  # 7번 반복
+            driver.execute_script("arguments[0].scrollBy(0,1080)", merchant_list)
+            await asyncio.sleep(0.5)
+    # 클로아 홈페이지 자체가 로딩이 안되는 경우 간혹발생, 그 경우 아예 포기
+    except selenium.common.NoSuchElementException:
+        driver.quit()
+        print(f"클로아 홈페이지 접속 장애 발생중 ----- {datetime.now().strftime('%H:%M')}")
+        return
+
+
 
     html = driver.page_source
     soup = BeautifulSoup(html, 'html.parser')
